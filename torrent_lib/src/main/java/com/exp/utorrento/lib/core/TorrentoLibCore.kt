@@ -17,6 +17,9 @@ import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import java.io.File
 
+/**
+ * [TorrentoLibCore] factory method
+ */
 @Suppress("FunctionName", "SpellCheckingInspection")
 fun TorrentoLibCore(): TorrentoLibCore = TorrentoLibCoreDefaultImpl()
 
