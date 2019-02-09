@@ -5,6 +5,9 @@ import bt.torrent.TorrentSessionState
 import io.reactivex.BackpressureStrategy
 import io.reactivex.Flowable
 
+/**
+ * An extension function to expose Rx interface instead of completable future
+ */
 fun BtClient.startAsync(period: Long): Flowable<TorrentSessionState> {
     return Flowable.create<TorrentSessionState>({ emitter ->
         emitter.setCancellable {
