@@ -32,14 +32,27 @@ dependencies {
     def lifecycle_version = "2.0.0"
     def room_version = "2.1.0-alpha03"
     def work_version = "1.0.0-beta01"
+    def rx_binding = "3.0.0-alpha2"
+    def koin_version = '1.0.2'
+    def libtorrent_version = '1.2.0.16'
 
     implementation fileTree(include: ['*.jar'], dir: 'libs')
+
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.1.0'
+
     implementation 'androidx.appcompat:appcompat:1.1.0-alpha01'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.0-alpha3'
     implementation 'androidx.core:core-ktx:1.0.1'
     implementation 'androidx.fragment:fragment-ktx:1.0.0'
     implementation 'androidx.collection:collection-ktx:1.0.0'
+
+
+    implementation "com.frostwire:jlibtorrent:$libtorrent_version"
+    implementation "com.frostwire:jlibtorrent-android-arm:$libtorrent_version"
+    implementation "com.frostwire:jlibtorrent-android-arm64:$libtorrent_version"
+    implementation "com.frostwire:jlibtorrent-android-x86:$libtorrent_version"
+    implementation "com.frostwire:jlibtorrent-android-x86_64:$libtorrent_version"
 
     // ViewModel and LiveData
     implementation "androidx.lifecycle:lifecycle-extensions:$lifecycle_version"
@@ -60,14 +73,47 @@ dependencies {
     // optional - RxJava2 support
     implementation "android.arch.work:work-rxjava2:$work_version"
 
+    // Koin for Kotlin
+    implementation "org.koin:koin-core:$koin_version"
+    // Koin for Android
+    implementation "org.koin:koin-android:$koin_version"
+    // AndroidX (based on koin-android)
+    // Koin AndroidX Scope feature
+    implementation "org.koin:koin-androidx-scope:$koin_version"
+    // Koin AndroidX ViewModel feature
+    implementation "org.koin:koin-androidx-viewmodel:$koin_version"
+
+    implementation 'com.jakewharton.timber:timber:4.7.1'
+
+    implementation 'io.reactivex.rxjava2:rxjava:2.2.5'
+    implementation 'io.reactivex.rxjava2:rxandroid:2.1.0'
+
+    implementation 'com.squareup.okhttp3:okhttp:3.12.1'
+    implementation 'com.squareup.retrofit2:retrofit:2.5.0'
+
+    implementation "com.jakewharton.rxbinding3:rxbinding-core:$rx_binding"
+    implementation "com.jakewharton.rxbinding3:rxbinding-appcompat:$rx_binding"
+    implementation "com.jakewharton.rxbinding3:rxbinding-drawerlayout:$rx_binding"
+    implementation "com.jakewharton.rxbinding3:rxbinding-leanback:$rx_binding"
+    implementation "com.jakewharton.rxbinding3:rxbinding-recyclerview:$rx_binding"
+    implementation "com.jakewharton.rxbinding3:rxbinding-slidingpanelayout:$rx_binding"
+    implementation "com.jakewharton.rxbinding3:rxbinding-swiperefreshlayout:$rx_binding"
+    implementation "com.jakewharton.rxbinding3:rxbinding-viewpager:$rx_binding"
 
     testImplementation "org.jetbrains.kotlin:kotlin-test:$kotlin_version"
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
+    testImplementation 'io.kotlintest:kotlintest-runner-junit5:3.1.11'
+
+    testImplementation 'org.robolectric:robolectric:4.1'
     // optional - Test helpers for LiveData
     testImplementation "androidx.arch.core:core-testing:$lifecycle_version"
     testImplementation 'junit:junit:4.12'
     // Test helpers
     testImplementation "androidx.room:room-testing:$room_version"
+    testImplementation "com.squareup.okhttp3:mockwebserver:3.12.1"
+    // Koin for Unit tests
+    testImplementation "org.koin:koin-test:$koin_version"
+
     androidTestImplementation 'androidx.test:runner:1.1.1'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.1.1'
     // optional - Test helpers
