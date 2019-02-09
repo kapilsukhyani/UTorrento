@@ -13,8 +13,19 @@ fun BtClient.startAsync(period: Long): Flowable<TorrentSessionState> {
             }
         }
         startAsync({ state ->
-            emitter.onNext(state)
+            if (!emitter.isCancelled) {
+                emitter.onNext(state)
+            }
         }, period)
-
+            .thenRun {
+                if (!emitter.isCancelled) {
+                    emitter.onComplete()
+                }
+            }
+            .handle { _, throwable ->
+                if (!emitter.isCancelled) {
+                    emitter.onError(throwable)
+                }
+            }
     }, BackpressureStrategy.ERROR)
 }
