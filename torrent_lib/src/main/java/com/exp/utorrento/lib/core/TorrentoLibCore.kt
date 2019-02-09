@@ -12,6 +12,7 @@ import bt.torrent.TorrentSessionState
 import com.exp.utorrento.extension.bt.startAsync
 import io.reactivex.Flowable
 import io.reactivex.Scheduler
+import io.reactivex.Single
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
 import java.io.File
@@ -22,7 +23,14 @@ fun TorrentoLibCore(): TorrentoLibCore = TorrentoLibCoreDefaultImpl()
 @Suppress("SpellCheckingInspection")
 interface TorrentoLibCore {
     /**
-     * Downloads a torrent magnet url contents at given location and emit the state of download no sooner than given interval
+     * Downloads a torrent magnet url contents at given location.
+     *
+     * @param magnetUri, torrent magnet uri.
+     * @param storageDir, directory to store downloaded content in.
+     * @param period, dictates how far [TorrentDownloadState.Downloading] events should be from each other.
+     * @param observeOn, an optional scheduler to indicate to observe stream on
+     *
+     * @return A stream of [TorrentDownloadState] events.
      */
     fun downloadMagnetContent(
         magnetUri: String,
@@ -30,10 +38,30 @@ interface TorrentoLibCore {
         period: Long = 2000,
         observeOn: Scheduler = Schedulers.computation()
     ): Flowable<TorrentDownloadState>
+
+    fun downloadTorrentForMagent(
+        magnetUri: String,
+        observeOn: Scheduler = Schedulers.computation()
+    ): Single<TorrentDownloadState.TorrentFileLoaded>
 }
 
 @Suppress("SpellCheckingInspection")
 internal class TorrentoLibCoreDefaultImpl : TorrentoLibCore {
+    private fun defaultConfig(): Config {
+        return object : Config() {
+            override fun getNumOfHashingThreads(): Int = Runtime.getRuntime().availableProcessors() * 2
+        }
+    }
+
+    private fun dhtModuleWithDefaultConfig(): DHTModule {
+        // enable bootstrapping from public routers
+        return DHTModule(object : DHTConfig() {
+            override fun shouldUseRouterBootstrap(): Boolean {
+                return true
+            }
+        })
+    }
+
     override fun downloadMagnetContent(
         magnetUri: String,
         storageDir: File,
@@ -41,17 +69,6 @@ internal class TorrentoLibCoreDefaultImpl : TorrentoLibCore {
         observeOn: Scheduler
     ): Flowable<TorrentDownloadState> {
         return Flowable.fromCallable {
-            val config = object : Config() {
-                override fun getNumOfHashingThreads(): Int = Runtime.getRuntime().availableProcessors() * 2
-            }
-
-            // enable bootstrapping from public routers
-            val dhtModule = DHTModule(object : DHTConfig() {
-                override fun shouldUseRouterBootstrap(): Boolean {
-                    return true
-                }
-            })
-
             if (!storageDir.isDirectory) {
                 throw IllegalArgumentException("storageDir is not a valid directory")
             }
@@ -76,11 +93,11 @@ internal class TorrentoLibCoreDefaultImpl : TorrentoLibCore {
                             )
                         )
                     }
-                    .config(config)
+                    .config(defaultConfig())
                     .storage(storage)
                     .magnet(uri)
                     .autoLoadModules()
-                    .module(dhtModule)
+                    .module(dhtModuleWithDefaultConfig())
                     .stopWhenDownloaded()
                     .build()
             )
@@ -102,6 +119,13 @@ internal class TorrentoLibCoreDefaultImpl : TorrentoLibCore {
             }
             .startWith(TorrentDownloadState.Validating)
             .observeOn(observeOn)
+    }
+
+    override fun downloadTorrentForMagent(
+        magnetUri: String,
+        observeOn: Scheduler
+    ): Single<TorrentDownloadState.TorrentFileLoaded> {
+        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
     }
 
 }
