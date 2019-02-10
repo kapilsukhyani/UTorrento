@@ -8,6 +8,7 @@ import bt.dht.DHTModule
 import bt.magnet.MagnetUriParser
 import bt.metainfo.MetadataService
 import bt.metainfo.Torrent
+import bt.metainfo.TorrentFile
 import bt.metainfo.TorrentId
 import bt.runtime.BtClient
 import bt.runtime.Config
@@ -152,6 +153,7 @@ internal class TorrentoLibCoreDefaultImpl : TorrentoLibCore {
         storageDir: File,
         observeOn: Scheduler
     ): Single<TorrentDownloadState.TorrentFileLoaded> {
+        //TODO this solution keep the peer tracker alive even when torrent info is downloaded and process doesnot die, need to find a way to download torrent info and complete the process right after that
         return Single.create<TorrentDownloadState.TorrentFileLoaded> { emitter ->
             lateinit var client: BtClient
             val uri = MagnetUriParser.parser().parse(magnetUri)
@@ -210,13 +212,26 @@ sealed class TorrentDownloadState {
      * Will be available as a state in stream only when a magnet url is requested
      */
     data class TorrentFileLoaded(val torrentId: TorrentId, val torrent: Torrent) : TorrentDownloadState() {
+        private fun List<TorrentFile>.asString(): String {
+            return with(StringBuilder()) {
+                append("Files[ \n")
+                forEachIndexed { index: Int, torrentFile: TorrentFile ->
+                    append("$index: [size: ${torrentFile.size}],\n")
+                }
+                append("]")
+            }
+                .toString()
+        }
+
         override fun toString(): String {
             return "TorrentDownloadState[TorrentFileLoaded[torrentId: $torrentId,\n" +
                     "torrent: [createdBy:  ${torrent.createdBy},\n" +
                     "name:  ${torrent.name},\n" +
                     "noOfFiles:  ${torrent.files.count()},\n" +
+                    "files:  [${torrent.files.asString()}],\n" +
                     "source:  ${torrent.source},\n" +
                     "isPrivate:  ${torrent.isPrivate}\n" +
+                    "size:  ${torrent.size}\n" +
                     "]]]"
         }
     }
