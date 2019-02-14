@@ -78,4 +78,5 @@ fun main(args: Array<String>) {
 //    downloadTorrentForMagnetExample()
 //    downloadTorrentForMagnetWithoutClientExample()
     downloadTorrentForMagnetAndThenDownloadTorrentExample()
+    //TODO add example to use a file selector
 }

@@ -131,6 +131,7 @@ internal class TorrentoLibCoreDefaultImpl(
         onTorrentFetched: ((Torrent) -> Unit) = defaultTorrentFetchedCallback
     ): StandaloneClientBuilder {
         // create client with a private runtime
+        //TODO check piece selection strategy and see if it is useful to be made available in API
         return btClientBuilder()
             .afterFilesChosen(defaultFileChosedCallback)
             .afterTorrentFetched(onTorrentFetched)
