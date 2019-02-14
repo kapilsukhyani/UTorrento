@@ -36,6 +36,7 @@ fun TorrentoLibCore(): TorrentoLibCore = TorrentoLibCoreDefaultImpl()
 @Suppress("SpellCheckingInspection")
 interface TorrentoLibCore {
     companion object {
+        //TODO allow consumers to pass in modified config
         val defaultConfig = object : Config() {
             override fun getNumOfHashingThreads(): Int = Runtime.getRuntime().availableProcessors() * 2
         }
@@ -46,7 +47,7 @@ interface TorrentoLibCore {
         })
 
         val defaultFileSelector = object : TorrentFileSelector() {
-            override fun select(file: TorrentFile?): SelectionResult {
+            override fun select(file: TorrentFile): SelectionResult {
                 return SelectionResult.select().build()
             }
         }
@@ -115,7 +116,13 @@ interface TorrentoLibCore {
 }
 
 @Suppress("SpellCheckingInspection")
-internal class TorrentoLibCoreDefaultImpl : TorrentoLibCore {
+internal class TorrentoLibCoreDefaultImpl(
+    /**
+     * This allows injection of fake builder to test just this code in isolation
+     */
+    private val btClientBuilder: () -> StandaloneClientBuilder = { Bt.client() }
+) :
+    TorrentoLibCore {
 
     private fun getBtClientBuilder(
         config: Config = defaultConfig,
@@ -124,7 +131,7 @@ internal class TorrentoLibCoreDefaultImpl : TorrentoLibCore {
         onTorrentFetched: ((Torrent) -> Unit) = defaultTorrentFetchedCallback
     ): StandaloneClientBuilder {
         // create client with a private runtime
-        return Bt.client()
+        return btClientBuilder()
             .afterFilesChosen(defaultFileChosedCallback)
             .afterTorrentFetched(onTorrentFetched)
             .fileSelector(fileSelector)
@@ -252,6 +259,8 @@ internal class TorrentoLibCoreDefaultImpl : TorrentoLibCore {
                 client.startAsync(period)
                     .map<TorrentDownloadState> { sessionState ->
                         if (sessionState.connectedPeers.isEmpty()) {
+                            //TODO replace it with logger
+                            println("finding peers")
                             TorrentDownloadState.FindingPeers(torrentId)
                         } else {
                             TorrentDownloadState.Downloading(torrentId, sessionState)
