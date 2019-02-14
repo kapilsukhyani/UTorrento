@@ -12,7 +12,14 @@ import bt.metainfo.TorrentId
 import bt.runtime.BtClient
 import bt.runtime.Config
 import bt.torrent.TorrentSessionState
+import bt.torrent.fileselector.SelectionResult
+import bt.torrent.fileselector.TorrentFileSelector
 import com.exp.utorrento.extension.bt.startAsync
+import com.exp.utorrento.lib.core.TorrentoLibCore.Companion.defaultConfig
+import com.exp.utorrento.lib.core.TorrentoLibCore.Companion.defaultFileChosedCallback
+import com.exp.utorrento.lib.core.TorrentoLibCore.Companion.defaultFileSelector
+import com.exp.utorrento.lib.core.TorrentoLibCore.Companion.defaultTorrentFetchedCallback
+import com.exp.utorrento.lib.core.TorrentoLibCore.Companion.dhtModuleWithDefaultConfig
 import io.reactivex.Flowable
 import io.reactivex.Scheduler
 import io.reactivex.Single
@@ -28,6 +35,32 @@ fun TorrentoLibCore(): TorrentoLibCore = TorrentoLibCoreDefaultImpl()
 
 @Suppress("SpellCheckingInspection")
 interface TorrentoLibCore {
+    companion object {
+        val defaultConfig = object : Config() {
+            override fun getNumOfHashingThreads(): Int = Runtime.getRuntime().availableProcessors() * 2
+        }
+        val dhtModuleWithDefaultConfig = DHTModule(object : DHTConfig() {
+            override fun shouldUseRouterBootstrap(): Boolean {
+                return true
+            }
+        })
+
+        val defaultFileSelector = object : TorrentFileSelector() {
+            override fun select(file: TorrentFile?): SelectionResult {
+                return SelectionResult.select().build()
+            }
+        }
+
+        val defaultTorrentFetchedCallback: ((Torrent) -> Unit) = {
+            //TODO replace with logger
+            println("Torrent file available: ${it.name}")
+        }
+        val defaultFileChosedCallback = {
+            //TODO replace with logger
+            println("Files selected")
+        }
+    }
+
     /**
      * Downloads a torrent magnet url contents at given location.
      *
@@ -42,6 +75,7 @@ interface TorrentoLibCore {
         magnetUri: String,
         storageDir: File,
         period: Long = 2000,
+        fileSelector: TorrentFileSelector = defaultFileSelector,
         observeOn: Scheduler = Schedulers.computation()
     ): Flowable<TorrentDownloadState>
 
@@ -75,40 +109,25 @@ interface TorrentoLibCore {
         torrent: Torrent,
         storageDir: File,
         period: Long = 2000,
+        fileSelector: TorrentFileSelector = defaultFileSelector,
         observeOn: Scheduler = Schedulers.computation()
     ): Flowable<TorrentDownloadState>
 }
 
 @Suppress("SpellCheckingInspection")
 internal class TorrentoLibCoreDefaultImpl : TorrentoLibCore {
-    private fun defaultConfig(): Config {
-        return object : Config() {
-            override fun getNumOfHashingThreads(): Int = Runtime.getRuntime().availableProcessors() * 2
-        }
-    }
-
-    private fun dhtModuleWithDefaultConfig(): DHTModule {
-        // enable bootstrapping from public routers
-        return DHTModule(object : DHTConfig() {
-            override fun shouldUseRouterBootstrap(): Boolean {
-                return true
-            }
-        })
-    }
 
     private fun getBtClientBuilder(
-        config: Config = defaultConfig(),
-        dhtModule: DHTModule = dhtModuleWithDefaultConfig(),
-        onTorrentFetched: ((Torrent) -> Unit)? = null
+        config: Config = defaultConfig,
+        dhtModule: DHTModule = dhtModuleWithDefaultConfig,
+        fileSelector: TorrentFileSelector = defaultFileSelector,
+        onTorrentFetched: ((Torrent) -> Unit) = defaultTorrentFetchedCallback
     ): StandaloneClientBuilder {
-        val onTorrentFetchedCallback = onTorrentFetched ?: {}
         // create client with a private runtime
         return Bt.client()
-            .afterFilesChosen {
-                //TODO replace with logger
-                println("Files selected")
-            }
-            .afterTorrentFetched(onTorrentFetchedCallback)
+            .afterFilesChosen(defaultFileChosedCallback)
+            .afterTorrentFetched(onTorrentFetched)
+            .fileSelector(fileSelector)
             .config(config)
             .autoLoadModules()
             .module(dhtModule)
@@ -118,6 +137,7 @@ internal class TorrentoLibCoreDefaultImpl : TorrentoLibCore {
         magnetUri: String,
         storageDir: File,
         period: Long,
+        fileSelector: TorrentFileSelector,
         observeOn: Scheduler
     ): Flowable<TorrentDownloadState> {
         return Flowable.fromCallable {
@@ -128,7 +148,7 @@ internal class TorrentoLibCoreDefaultImpl : TorrentoLibCore {
             val storage = FileSystemStorage(storageDir.toPath())
             val uri = MagnetUriParser.parser().parse(magnetUri)
             val torrentFileAvailableEventSource = PublishSubject.create<TorrentDownloadState.TorrentFileLoaded>()
-            val client = getBtClientBuilder { torrent ->
+            val client = getBtClientBuilder(fileSelector = fileSelector) { torrent ->
                 torrentFileAvailableEventSource.onNext(
                     TorrentDownloadState.TorrentFileLoaded(
                         torrent.torrentId,
@@ -207,6 +227,7 @@ internal class TorrentoLibCoreDefaultImpl : TorrentoLibCore {
         torrent: Torrent,
         storageDir: File,
         period: Long,
+        fileSelector: TorrentFileSelector,
         observeOn: Scheduler
     ): Flowable<TorrentDownloadState> {
         return Flowable.fromCallable {
@@ -215,7 +236,7 @@ internal class TorrentoLibCoreDefaultImpl : TorrentoLibCore {
             }
             // create file system based backend for torrent data
             val storage = FileSystemStorage(storageDir.toPath())
-            val client = getBtClientBuilder()
+            val client = getBtClientBuilder(fileSelector = fileSelector)
                 .storage(storage)
                 .torrent { torrent }
                 .stopWhenDownloaded()
