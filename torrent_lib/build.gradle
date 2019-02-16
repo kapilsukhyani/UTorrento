@@ -2,23 +2,12 @@ apply plugin: 'java-library'
 apply plugin: 'kotlin'
 
 dependencies {
-    def koin_version = '1.0.2'
-//    def libtorrent_version = '1.2.0.16'
     def bt_version = '1.7'
 
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.1.0'
-
-    // Koin for Kotlin
-    implementation "org.koin:koin-core:$koin_version"
-
-//    implementation "com.frostwire:jlibtorrent:$libtorrent_version"
-//    implementation "com.frostwire:jlibtorrent-android-arm:$libtorrent_version"
-//    implementation "com.frostwire:jlibtorrent-android-arm64:$libtorrent_version"
-//    implementation "com.frostwire:jlibtorrent-android-x86:$libtorrent_version"
-//    implementation "com.frostwire:jlibtorrent-android-x86_64:$libtorrent_version"
 
     implementation "com.github.atomashpolskiy:bt-core:$bt_version"
     implementation "com.github.atomashpolskiy:bt-http-tracker-client:$bt_version"
@@ -27,12 +16,9 @@ dependencies {
 
 
     implementation 'io.reactivex.rxjava2:rxjava:2.2.5'
-    implementation 'io.reactivex.rxjava2:rxandroid:2.1.0'
-
-    implementation 'com.squareup.okhttp3:okhttp:3.12.1'
-    implementation 'com.squareup.retrofit2:retrofit:2.5.0'
-
-    // simple logger implementation for BT, used only during tests
+    
+    // simple logger implementation for BT, used only during tests, this by default writes to System.err but is configured to write in
+    // Syste.out in TorrentoLibCoreDefaultImplTest
     testImplementation 'org.slf4j:slf4j-simple:1.7.25'
 
 
@@ -40,8 +26,6 @@ dependencies {
     testImplementation "org.jetbrains.kotlin:kotlin-test-junit:$kotlin_version"
     testImplementation 'io.kotlintest:kotlintest-runner-junit5:3.1.11'
 
-    // Koin for Unit tests
-    testImplementation "org.koin:koin-test:$koin_version"
 }
 
 sourceCompatibility = "8"
