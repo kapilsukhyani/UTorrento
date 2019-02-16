@@ -68,6 +68,7 @@ interface TorrentoLibCore {
      * @param magnetUri, torrent magnet uri.
      * @param storageDir, directory to store downloaded content in.
      * @param period, dictates how far [TorrentDownloadState.Downloading] events should be from each other.
+     * @param downloadDataSequentially, true if content needs to be downloaded sequentially else false (could be useful for streaming like behavior)
      * @param observeOn, an optional scheduler to observe stream on, default is [Schedulers.computation]
      *
      * @return A stream of [TorrentDownloadState] events.
@@ -77,6 +78,7 @@ interface TorrentoLibCore {
         storageDir: File,
         period: Long = 2000,
         fileSelector: TorrentFileSelector = defaultFileSelector,
+        downloadDataSequentially: Boolean = false,
         observeOn: Scheduler = Schedulers.computation()
     ): Flowable<TorrentDownloadState>
 
@@ -89,7 +91,7 @@ interface TorrentoLibCore {
      *
      * @return A [Single] of [TorrentDownloadState.TorrentFileLoaded]
      */
-    fun downloadTorrentForMagent(
+    fun downloadTorrentInfoForMagent(
         magnetUri: String,
         storageDir: File,
         observeOn: Scheduler = Schedulers.computation()
@@ -101,16 +103,18 @@ interface TorrentoLibCore {
      * @param torrent, [Torrent] to download, this can be downloaded separately given a uri or magnet uri.
      * @param storageDir, directory to store downloaded content in.
      * @param period, dictates how far [TorrentDownloadState.Downloading] events should be from each other.
+     * @param downloadDataSequentially, true if content needs to be downloaded sequentially else false (could be useful for streaming like behavior)
      * @param observeOn, an optional scheduler to observe stream on, default is [Schedulers.computation]
      *
      * @return A stream of [TorrentDownloadState] events.
      *
      */
-    fun downloadTorrent(
+    fun downloadTorrentContent(
         torrent: Torrent,
         storageDir: File,
         period: Long = 2000,
         fileSelector: TorrentFileSelector = defaultFileSelector,
+        downloadDataSequentially: Boolean = false,
         observeOn: Scheduler = Schedulers.computation()
     ): Flowable<TorrentDownloadState>
 }
@@ -128,6 +132,7 @@ internal class TorrentoLibCoreDefaultImpl(
         config: Config = defaultConfig,
         dhtModule: DHTModule = dhtModuleWithDefaultConfig,
         fileSelector: TorrentFileSelector = defaultFileSelector,
+        downloadDataSequentially: Boolean = false,
         onTorrentFetched: ((Torrent) -> Unit) = defaultTorrentFetchedCallback
     ): StandaloneClientBuilder {
         // create client with a private runtime
@@ -139,6 +144,11 @@ internal class TorrentoLibCoreDefaultImpl(
             .config(config)
             .autoLoadModules()
             .module(dhtModule)
+            .apply {
+                if (downloadDataSequentially) {
+                    sequentialSelector()
+                }
+            }
     }
 
     override fun downloadMagnetContent(
@@ -146,6 +156,7 @@ internal class TorrentoLibCoreDefaultImpl(
         storageDir: File,
         period: Long,
         fileSelector: TorrentFileSelector,
+        downloadDataSequentially: Boolean,
         observeOn: Scheduler
     ): Flowable<TorrentDownloadState> {
         return Flowable.fromCallable {
@@ -156,7 +167,10 @@ internal class TorrentoLibCoreDefaultImpl(
             val storage = FileSystemStorage(storageDir.toPath())
             val uri = MagnetUriParser.parser().parse(magnetUri)
             val torrentFileAvailableEventSource = PublishSubject.create<TorrentDownloadState.TorrentFileLoaded>()
-            val client = getBtClientBuilder(fileSelector = fileSelector) { torrent ->
+            val client = getBtClientBuilder(
+                fileSelector = fileSelector,
+                downloadDataSequentially = downloadDataSequentially
+            ) { torrent ->
                 torrentFileAvailableEventSource.onNext(
                     TorrentDownloadState.TorrentFileLoaded(
                         torrent.torrentId,
@@ -194,7 +208,7 @@ internal class TorrentoLibCoreDefaultImpl(
             .observeOn(observeOn)
     }
 
-    override fun downloadTorrentForMagent(
+    override fun downloadTorrentInfoForMagent(
         magnetUri: String,
         storageDir: File,
         observeOn: Scheduler
@@ -231,11 +245,12 @@ internal class TorrentoLibCoreDefaultImpl(
 
     }
 
-    override fun downloadTorrent(
+    override fun downloadTorrentContent(
         torrent: Torrent,
         storageDir: File,
         period: Long,
         fileSelector: TorrentFileSelector,
+        downloadDataSequentially: Boolean,
         observeOn: Scheduler
     ): Flowable<TorrentDownloadState> {
         return Flowable.fromCallable {
@@ -244,7 +259,10 @@ internal class TorrentoLibCoreDefaultImpl(
             }
             // create file system based backend for torrent data
             val storage = FileSystemStorage(storageDir.toPath())
-            val client = getBtClientBuilder(fileSelector = fileSelector)
+            val client = getBtClientBuilder(
+                fileSelector = fileSelector,
+                downloadDataSequentially = downloadDataSequentially
+            )
                 .storage(storage)
                 .torrent { torrent }
                 .stopWhenDownloaded()
