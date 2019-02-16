@@ -32,8 +32,8 @@ dependencies {
     implementation 'com.squareup.okhttp3:okhttp:3.12.1'
     implementation 'com.squareup.retrofit2:retrofit:2.5.0'
 
-    // no op logger implementation for BT
-    testImplementation 'org.slf4j:slf4j-nop:1.7.25'
+    // simple logger implementation for BT, used only during tests
+    testImplementation 'org.slf4j:slf4j-simple:1.7.25'
 
 
     testImplementation "org.jetbrains.kotlin:kotlin-test:$kotlin_version"

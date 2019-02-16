@@ -15,6 +15,11 @@ import java.io.File
 //TODO rectify tests implementation
 class TorrentoLibCoreDefaultImplTest {
 
+    init {
+        //to make slf4j-simple binding write to System.out instead of System.err
+        System.setProperty("org.slf4j.simpleLogger.logFile", "System.out")
+    }
+
     @Before
     @Throws(Exception::class)
     fun setUp() {
@@ -44,7 +49,7 @@ class TorrentoLibCoreDefaultImplTest {
     }
 
     @Test
-    fun downloadTorrentInfoForMagnet() {
+    fun downloadTorrentInfoForMagent() {
         val targetDirectory = File("/Users/ksukhyani/Downloads")
         val core = TorrentoLibCore()
         val disposable = core.downloadTorrentInfoForMagent(

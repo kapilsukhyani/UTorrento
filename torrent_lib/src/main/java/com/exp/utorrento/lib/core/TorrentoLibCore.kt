@@ -25,6 +25,7 @@ import io.reactivex.Scheduler
 import io.reactivex.Single
 import io.reactivex.schedulers.Schedulers
 import io.reactivex.subjects.PublishSubject
+import org.slf4j.LoggerFactory
 import java.io.File
 
 /**
@@ -36,6 +37,7 @@ fun TorrentoLibCore(): TorrentoLibCore = TorrentoLibCoreDefaultImpl()
 @Suppress("SpellCheckingInspection")
 interface TorrentoLibCore {
     companion object {
+        val logger = LoggerFactory.getLogger(TorrentoLibCore::class.java)
         //TODO allow consumers to pass in modified config
         val defaultConfig = object : Config() {
             override fun getNumOfHashingThreads(): Int = Runtime.getRuntime().availableProcessors() * 2
@@ -53,12 +55,10 @@ interface TorrentoLibCore {
         }
 
         val defaultTorrentFetchedCallback: ((Torrent) -> Unit) = {
-            //TODO replace with logger
-            println("Torrent file available: ${it.name}")
+            logger.info("Torrent file available: ${it.name}")
         }
         val defaultFileChosedCallback = {
-            //TODO replace with logger
-            println("Files selected")
+            logger.info("Files selected")
         }
     }
 
@@ -278,8 +278,7 @@ internal class TorrentoLibCoreDefaultImpl(
                 client.startAsync(period)
                     .map<TorrentDownloadState> { sessionState ->
                         if (sessionState.connectedPeers.isEmpty()) {
-                            //TODO replace it with logger
-                            println("finding peers")
+                            TorrentoLibCore.logger.info("finding peers")
                             TorrentDownloadState.FindingPeers(torrentId)
                         } else {
                             TorrentDownloadState.Downloading(torrentId, sessionState)
